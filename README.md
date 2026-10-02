@@ -1,6 +1,6 @@
 # Markettech.in E-commerce
 
-A beginner-friendly kitchen and household storefront prototype with an owner admin panel.
+A project to build and test a beginner-friendly kitchen and household storefront for the owner's domain, `markettech.in`.
 
 ## Run the preview
 
