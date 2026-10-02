@@ -166,6 +166,8 @@ h1, h2, h3, p { margin-top: 0; }
 .add-button { width: 31px; height: 31px; display: grid; place-items: center; margin-left: auto; border: 1px solid #bbc8bd; border-radius: 50%; background: transparent; color: var(--green); cursor: pointer; transition: color .18s, background .18s, border .18s; }
 .add-button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
 .add-button:hover { color: white; border-color: var(--green-dark); background: var(--green-dark); }
+.add-button:disabled { cursor: not-allowed; opacity: .45; }
+.stock-out-label { margin-left: auto; color: #a65e50; font-size: 8px; font-weight: 700; }
 .shop-footnote { display: flex; align-items: center; gap: 8px; margin-top: 32px; padding: 13px 15px; border: 1px solid #e0e3d8; color: #718078; font-size: 9px; line-height: 1.5; }
 .footnote-star { color: var(--coral); font-size: 13px; }
 .empty-results { grid-column: 1 / -1; min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; text-align: center; }

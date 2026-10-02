@@ -6,8 +6,9 @@ For a plain-language overview and order flowchart, see the [beginner-friendly ro
 
 ## Starting point and assumptions
 
-- A responsive storefront prototype now exists in `index.html`, `styles.css`, and `app.js`, with sample products and generated product photos. It demonstrates browsing, filtering, saved items, a local shopping bag, and a non-transactional checkout preview.
-- There is still no production backend, database, secure admin, payment, shipping, or live order processing. The prototype is not ready to accept real orders.
+- The responsive storefront in `index.html`, `styles.css`, and `app.js` reads product and stock data from a local Python/SQLite API (`server.py`). It supports browsing, filters, saved items, a browser-local shopping bag, and a non-transactional checkout preview.
+- An owner panel at `/admin.html` supports one-time password setup, product add/edit/archive, stock adjustment and low-stock warnings, CSV exports, store copy/contact settings, and an orders placeholder. Product updates appear in the storefront.
+- The sample data and local SQLite setup are for development only. There is still no production hosting, real checkout, payment, shipping, customer order processing, or live customer data. The store is not ready to accept orders.
 - “Household items” is the assumed meaning of the request's “hold hold items.”
 - India is a possible initial market, not a confirmed requirement. Confirm the countries/regions served before selecting tax, payment, and shipping integrations.
 - The brand styling, product range, budget, fulfillment model, and technology choices are still open decisions.

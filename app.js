@@ -133,6 +133,7 @@ function iconHeart(filled = false) {
 
 function renderProductCard(product) {
   const isSaved = saved.has(product.id);
+  const outOfStock = Number(product.stock) <= 0;
   return `
     <article class="product-card">
       <div class="product-image-wrap">
@@ -149,7 +150,7 @@ function renderProductCard(product) {
         <div class="product-meta"><span>${escapeHTML(product.categoryLabel)}</span><span class="meta-spark" aria-hidden="true">✳</span></div>
         <button class="product-name" type="button" data-product-detail="${escapeHTML(product.id)}">${escapeHTML(product.name)}</button>
         <div class="product-bottom"><span class="product-price">${formatPrice(product.price)}</span><span class="sample-label">sample price</span>
-          <button class="add-button" type="button" data-add-product="${escapeHTML(product.id)}" aria-label="Add ${escapeHTML(product.name)} to bag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          ${outOfStock ? '<span class="stock-out-label">Out of stock</span>' : `<button class="add-button" type="button" data-add-product="${escapeHTML(product.id)}" aria-label="Add ${escapeHTML(product.name)} to bag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>`}
         </div>
       </div>
     </article>`;
@@ -192,6 +193,12 @@ function renderProducts() {
     productGrid.innerHTML = visible.map(renderProductCard).join('');
   }
   updateSavedCount();
+  updateCategoryCounts();
+}
+
+function updateCategoryCounts() {
+  const allCount = document.querySelector('[data-filter="all"] span');
+  if (allCount) allCount.textContent = String(products.length).padStart(2, '0');
 }
 
 function categoryTitle(category) {
@@ -225,11 +232,17 @@ function showToast(message) {
 }
 
 function addToCart(id, quantity = 1) {
-  if (!productById.has(id)) return;
-  cart[id] = (Number(cart[id]) || 0) + quantity;
+  const product = productById.get(id);
+  if (!product) return;
+  const existing = Number(cart[id]) || 0;
+  if (Number.isFinite(Number(product.stock)) && existing + quantity > Number(product.stock)) {
+    showToast(Number(product.stock) <= 0 ? 'This sample item is out of stock.' : `Only ${product.stock} available in this sample stock.`);
+    return;
+  }
+  cart[id] = existing + quantity;
   saveCart();
   renderCart();
-  showToast(`${productById.get(id).name} added to your bag`);
+  showToast(`${product.name} added to your bag`);
 }
 
 function toggleSaved(id) {
@@ -267,7 +280,7 @@ function renderCart() {
         <div class="quantity-control" aria-label="Quantity for ${escapeHTML(product.name)}">
           <button type="button" data-cart-action="minus" data-product-id="${escapeHTML(product.id)}" aria-label="Decrease quantity">−</button>
           <span>${quantity}</span>
-          <button type="button" data-cart-action="plus" data-product-id="${escapeHTML(product.id)}" aria-label="Increase quantity">+</button>
+          <button type="button" data-cart-action="plus" data-product-id="${escapeHTML(product.id)}" aria-label="Increase quantity" ${Number.isFinite(Number(product.stock)) && quantity >= Number(product.stock) ? 'disabled' : ''}>+</button>
         </div>
       </div>
       <button class="remove-item" type="button" data-cart-action="remove" data-product-id="${escapeHTML(product.id)}" aria-label="Remove ${escapeHTML(product.name)}">Remove</button>
@@ -313,6 +326,7 @@ function openProductDialog(id) {
   if (!product) return;
   const wasAlreadyOpen = productDialog.open;
   const isSaved = saved.has(id);
+  const outOfStock = Number(product.stock) <= 0;
   productDialog.innerHTML = `
     <button class="icon-button dialog-close" type="button" data-close-dialog aria-label="Close product details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
     <div class="product-dialog-image"><img src="${escapeHTML(product.image)}" alt="${escapeHTML(product.imageAlt)}"></div>
@@ -320,7 +334,7 @@ function openProductDialog(id) {
       <p class="dialog-price">${formatPrice(product.price)} <small>sample price</small></p>
       <p class="dialog-description">${escapeHTML(product.description)}</p>
       <p class="dialog-details">${escapeHTML(product.details)}</p>
-      <div class="dialog-actions"><button class="button button-dark" type="button" data-add-product="${escapeHTML(product.id)}">Add to bag <span aria-hidden="true">&#8594;</span></button><button class="dialog-save${isSaved ? ' is-saved' : ''}" type="button" data-save-product="${escapeHTML(product.id)}" aria-pressed="${isSaved}">${iconHeart(isSaved)} ${isSaved ? 'Saved' : 'Save for later'}</button></div>
+      <div class="dialog-actions">${outOfStock ? '<button class="button button-dark" type="button" disabled>Out of stock</button>' : `<button class="button button-dark" type="button" data-add-product="${escapeHTML(product.id)}">Add to bag <span aria-hidden="true">&#8594;</span></button>`}<button class="dialog-save${isSaved ? ' is-saved' : ''}" type="button" data-save-product="${escapeHTML(product.id)}" aria-pressed="${isSaved}">${iconHeart(isSaved)} ${isSaved ? 'Saved' : 'Save for later'}</button></div>
       <p class="dialog-sample-note">This is a sample listing. Confirm product details and stock before the real store opens.</p>
     </div>`;
   if (!wasAlreadyOpen) productDialog.showModal();
@@ -396,7 +410,14 @@ document.addEventListener('click', (event) => {
   if (cartAction) {
     const id = cartAction.dataset.productId;
     const action = cartAction.dataset.cartAction;
-    if (action === 'plus') cart[id] = (Number(cart[id]) || 0) + 1;
+    if (action === 'plus') {
+      const product = productById.get(id);
+      if (product && Number.isFinite(Number(product.stock)) && (Number(cart[id]) || 0) >= Number(product.stock)) {
+        showToast(`Only ${product.stock} available in this sample stock.`);
+        return;
+      }
+      cart[id] = (Number(cart[id]) || 0) + 1;
+    }
     if (action === 'minus') cart[id] = (Number(cart[id]) || 0) - 1;
     if (action === 'remove' || Number(cart[id]) <= 0) delete cart[id];
     saveCart();
@@ -426,13 +447,65 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && cartDrawer.classList.contains('is-open')) closeCart();
 });
 
+async function refreshProductsFromServer() {
+  try {
+    const response = await fetch('/api/products', { cache: 'no-store' });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!Array.isArray(data)) return;
+    products.splice(0, products.length, ...data);
+    productById.clear();
+    products.forEach((product) => productById.set(product.id, product));
+    let cartChanged = false;
+    Object.keys(cart).forEach((id) => {
+      if (!productById.has(id)) { delete cart[id]; cartChanged = true; }
+    });
+    if (cartChanged) saveCart();
+    renderProducts();
+    renderCart();
+  } catch {
+    // The static fallback catalogue stays usable if the API is not running.
+  }
+}
+
+async function refreshStoreSettings() {
+  try {
+    const response = await fetch('/api/store-settings', { cache: 'no-store' });
+    if (!response.ok) return;
+    const settings = await response.json();
+    document.getElementById('preview-message').textContent = settings.announcement || '';
+    document.getElementById('hero-description').textContent = settings.hero_description || '';
+    document.getElementById('about-description').textContent = settings.about_description || '';
+    const contact = document.getElementById('contact-email');
+    const email = String(settings.support_email || '').trim();
+    if (email) {
+      contact.href = `mailto:${email}`;
+      contact.textContent = email;
+      contact.dataset.configured = 'true';
+      contact.setAttribute('aria-label', `Email ${email}`);
+    } else {
+      contact.href = 'mailto:hello@markettech.in';
+      contact.textContent = 'Contact placeholder';
+      contact.dataset.configured = 'false';
+      contact.setAttribute('aria-label', 'Contact placeholder');
+    }
+  } catch {
+    // Default copy remains visible if the API is not running.
+  }
+}
+
 // Keep a sensible contact placeholder from implying a live support inbox.
-document.querySelector('a[href="mailto:hello@markettech.in"]').addEventListener('click', (event) => {
-  event.preventDefault();
-  showToast('A real customer support contact will be added before launch.');
+document.getElementById('contact-email').addEventListener('click', (event) => {
+  if (event.currentTarget.dataset.configured !== 'true') {
+    event.preventDefault();
+    showToast('A real customer support contact will be added before launch.');
+  }
 });
 
 document.getElementById('current-year').textContent = new Date().getFullYear();
 renderProducts();
 renderCart();
 updateFilterUI();
+refreshProductsFromServer();
+refreshStoreSettings();
+window.addEventListener('focus', () => { refreshProductsFromServer(); refreshStoreSettings(); });
